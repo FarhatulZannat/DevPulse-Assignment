@@ -102,3 +102,25 @@ export const validateIssueFilters = (
 
   return filters;
 };
+
+export const validateIssueId = (value: unknown): number => {
+  if (typeof value !== "string" || !/^\d+$/.test(value)) {
+    throw new AppError(
+      StatusCodes.BAD_REQUEST,
+      "Invalid issue id",
+      "Issue id must be a positive integer",
+    );
+  }
+
+  const id = Number(value);
+
+  if (!Number.isSafeInteger(id) || id < 1) {
+    throw new AppError(
+      StatusCodes.BAD_REQUEST,
+      "Invalid issue id",
+      "Issue id must be a positive integer",
+    );
+  }
+
+  return id;
+};

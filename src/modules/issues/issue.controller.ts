@@ -7,6 +7,7 @@ import { issueService } from "./issue.service.js";
 import {
   validateCreateIssueInput,
   validateIssueFilters,
+  validateIssueId,
 } from "./issue.validation.js";
 
 const createIssue = catchAsync(async (req: Request, res: Response) => {
@@ -39,7 +40,19 @@ const getAllIssues = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getSingleIssue = catchAsync(async (req: Request, res: Response) => {
+  const id = validateIssueId(req.params.id);
+  const issue = await issueService.getSingleIssue(id);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    message: "Issue retrived successfully",
+    data: issue,
+  });
+});
+
 export const issueController = {
   createIssue,
   getAllIssues,
+  getSingleIssue,
 };

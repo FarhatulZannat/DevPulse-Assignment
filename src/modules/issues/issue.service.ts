@@ -1,4 +1,6 @@
 import { pool } from "../../db/index.js";
+import { StatusCodes } from "http-status-codes";
+import { AppError } from "../../errors/AppError.js";
 import type {
   CreateIssueInput,
   IssueFilters,
@@ -76,7 +78,40 @@ const getAllIssues = async (filters: IssueFilters): Promise<IssueResponse[]> => 
   }));
 };
 
+const getSingleIssue = async (id: number): Promise<IssueResponse> => {
+  const issueResult = await pool.query<IssueRecord>(
+    `
+      SELECT id, title, description, type, status, reporter_id,
+             created_at, updated_at
+      FROM issues
+      WHERE id = $1
+    `,
+    [id],
+  );
+  const issue = issueResult.rows[0];
+
+  if (!issue) {
+    throw new AppError(
+      StatusCodes.NOT_FOUND,
+      "Issue not found",
+      `No issue exists with id ${id}`,
+    );
+  }
+
+  const reporterResult = await pool.query<IssueReporter>(
+    "SELECT id, name, role FROM users WHERE id = $1",
+    [issue.reporter_id],
+  );
+  const { reporter_id: _reporterId, ...issueData } = issue;
+
+  return {
+    ...issueData,
+    reporter: reporterResult.rows[0] ?? null,
+  };
+};
+
 export const issueService = {
   createIssue,
   getAllIssues,
+  getSingleIssue,
 };
