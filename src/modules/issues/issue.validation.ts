@@ -1,8 +1,12 @@
 import { StatusCodes } from "http-status-codes";
 import { AppError } from "../../errors/AppError.js";
 import {
+  ISSUE_STATUSES,
   ISSUE_TYPES,
   type CreateIssueInput,
+  type IssueFilters,
+  type IssueSort,
+  type IssueStatus,
   type IssueType,
 } from "./issue.interface.js";
 
@@ -58,4 +62,43 @@ export const validateCreateIssueInput = (payload: unknown): CreateIssueInput => 
     description,
     type: type as IssueType,
   };
+};
+
+export const validateIssueFilters = (
+  query: Record<string, unknown>,
+): IssueFilters => {
+  const errors: string[] = [];
+  const sort = query.sort ?? "newest";
+  const type = query.type;
+  const status = query.status;
+
+  if (typeof sort !== "string" || !["newest", "oldest"].includes(sort)) {
+    errors.push("sort must be either newest or oldest");
+  }
+
+  if (
+    type !== undefined &&
+    (typeof type !== "string" || !ISSUE_TYPES.includes(type as IssueType))
+  ) {
+    errors.push("type must be either bug or feature_request");
+  }
+
+  if (
+    status !== undefined &&
+    (typeof status !== "string" ||
+      !ISSUE_STATUSES.includes(status as IssueStatus))
+  ) {
+    errors.push("status must be open, in_progress, or resolved");
+  }
+
+  if (errors.length > 0) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "Invalid query parameters", errors);
+  }
+
+  const filters: IssueFilters = { sort: sort as IssueSort };
+
+  if (type !== undefined) filters.type = type as IssueType;
+  if (status !== undefined) filters.status = status as IssueStatus;
+
+  return filters;
 };

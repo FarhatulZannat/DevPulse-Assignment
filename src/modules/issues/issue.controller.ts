@@ -4,7 +4,10 @@ import { AppError } from "../../errors/AppError.js";
 import { catchAsync } from "../../utils/catchAsync.js";
 import { sendResponse } from "../../utils/sendResponse.js";
 import { issueService } from "./issue.service.js";
-import { validateCreateIssueInput } from "./issue.validation.js";
+import {
+  validateCreateIssueInput,
+  validateIssueFilters,
+} from "./issue.validation.js";
 
 const createIssue = catchAsync(async (req: Request, res: Response) => {
   if (!req.user) {
@@ -25,6 +28,18 @@ const createIssue = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getAllIssues = catchAsync(async (req: Request, res: Response) => {
+  const filters = validateIssueFilters(req.query);
+  const issues = await issueService.getAllIssues(filters);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    message: "Issues retrived successfully",
+    data: issues,
+  });
+});
+
 export const issueController = {
   createIssue,
+  getAllIssues,
 };
