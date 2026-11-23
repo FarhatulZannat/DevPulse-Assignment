@@ -10,7 +10,6 @@ import type {
   PublicUser,
   SignupInput,
 } from "./auth.interface.js";
-import type { UserRole } from "../../types/index.js";
 
 type DatabaseError = Error & { code?: string };
 
@@ -94,7 +93,7 @@ const login = async (payload: LoginInput): Promise<LoginResult> => {
     {
       id: user.id,
       name: user.name,
-      role: user.role satisfies UserRole,
+      role: user.role,
     },
     config.jwtSecret,
     {

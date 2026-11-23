@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 const parsePort = (value: string | undefined): number => {
   const port = Number(value ?? 5000);
