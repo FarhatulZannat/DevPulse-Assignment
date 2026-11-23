@@ -7,6 +7,11 @@ export interface SignupInput {
   role: UserRole;
 }
 
+export interface LoginInput {
+  email: string;
+  password: string;
+}
+
 export interface PublicUser {
   id: number;
   name: string;
@@ -14,4 +19,9 @@ export interface PublicUser {
   role: UserRole;
   created_at: Date;
   updated_at: Date;
+}
+
+export interface LoginResult {
+  token: string;
+  user: PublicUser;
 }

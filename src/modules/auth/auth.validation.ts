@@ -1,7 +1,7 @@
 import { StatusCodes } from "http-status-codes";
 import { AppError } from "../../errors/AppError.js";
 import { USER_ROLES, type UserRole } from "../../types/index.js";
-import type { SignupInput } from "./auth.interface.js";
+import type { LoginInput, SignupInput } from "./auth.interface.js";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -56,4 +56,34 @@ export const validateSignupInput = (payload: unknown): SignupInput => {
     password,
     role: role as UserRole,
   };
+};
+
+export const validateLoginInput = (payload: unknown): LoginInput => {
+  if (!isObject(payload)) {
+    throw new AppError(
+      StatusCodes.BAD_REQUEST,
+      "Invalid login data",
+      "Request body must be a JSON object",
+    );
+  }
+
+  const errors: string[] = [];
+  const email = typeof payload.email === "string" ? payload.email.trim().toLowerCase() : "";
+  const password = typeof payload.password === "string" ? payload.password : "";
+
+  if (!email) {
+    errors.push("email is required");
+  } else if (email.length > 320 || !EMAIL_PATTERN.test(email)) {
+    errors.push("email must be a valid email address");
+  }
+
+  if (!password) {
+    errors.push("password is required");
+  }
+
+  if (errors.length > 0) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "Invalid login data", errors);
+  }
+
+  return { email, password };
 };
