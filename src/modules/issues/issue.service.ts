@@ -1,12 +1,14 @@
 import { pool } from "../../db/index.js";
 import { StatusCodes } from "http-status-codes";
 import { AppError } from "../../errors/AppError.js";
+import type { AuthUser } from "../../types/index.js";
 import type {
   CreateIssueInput,
   IssueFilters,
   IssueRecord,
   IssueReporter,
   IssueResponse,
+  UpdateIssueInput,
 } from "./issue.interface.js";
 
 const createIssue = async (
@@ -110,8 +112,110 @@ const getSingleIssue = async (id: number): Promise<IssueResponse> => {
   };
 };
 
+const updateIssue = async (
+  id: number,
+  payload: UpdateIssueInput,
+  requester: AuthUser,
+): Promise<IssueRecord> => {
+  const existingResult = await pool.query<IssueRecord>(
+    `
+      SELECT id, title, description, type, status, reporter_id,
+             created_at, updated_at
+      FROM issues
+      WHERE id = $1
+    `,
+    [id],
+  );
+  const existingIssue = existingResult.rows[0];
+
+  if (!existingIssue) {
+    throw new AppError(
+      StatusCodes.NOT_FOUND,
+      "Issue not found",
+      `No issue exists with id ${id}`,
+    );
+  }
+
+  if (requester.role === "contributor") {
+    if (existingIssue.reporter_id !== requester.id) {
+      throw new AppError(
+        StatusCodes.FORBIDDEN,
+        "You can only update your own issues",
+        "This issue belongs to another contributor",
+      );
+    }
+
+    if (existingIssue.status !== "open") {
+      throw new AppError(
+        StatusCodes.CONFLICT,
+        "Only open issues can be updated by contributors",
+        `This issue is currently ${existingIssue.status}`,
+      );
+    }
+
+    if (payload.status !== undefined) {
+      throw new AppError(
+        StatusCodes.FORBIDDEN,
+        "Only maintainers can change issue status",
+        "Contributors cannot update workflow status",
+      );
+    }
+  }
+
+  const setClauses: string[] = [];
+  const values: Array<string | number> = [];
+
+  if (payload.title !== undefined) {
+    values.push(payload.title);
+    setClauses.push(`title = $${values.length}`);
+  }
+  if (payload.description !== undefined) {
+    values.push(payload.description);
+    setClauses.push(`description = $${values.length}`);
+  }
+  if (payload.type !== undefined) {
+    values.push(payload.type);
+    setClauses.push(`type = $${values.length}`);
+  }
+  if (payload.status !== undefined) {
+    values.push(payload.status);
+    setClauses.push(`status = $${values.length}`);
+  }
+
+  values.push(id);
+  let whereClause = `id = $${values.length}`;
+
+  if (requester.role === "contributor") {
+    values.push(requester.id);
+    whereClause += ` AND reporter_id = $${values.length} AND status = 'open'`;
+  }
+
+  const updatedResult = await pool.query<IssueRecord>(
+    `
+      UPDATE issues
+      SET ${setClauses.join(", ")}
+      WHERE ${whereClause}
+      RETURNING id, title, description, type, status, reporter_id,
+                created_at, updated_at
+    `,
+    values,
+  );
+  const updatedIssue = updatedResult.rows[0];
+
+  if (!updatedIssue) {
+    throw new AppError(
+      StatusCodes.CONFLICT,
+      "Issue could not be updated",
+      "The issue changed while the update was being processed",
+    );
+  }
+
+  return updatedIssue;
+};
+
 export const issueService = {
   createIssue,
   getAllIssues,
   getSingleIssue,
+  updateIssue,
 };

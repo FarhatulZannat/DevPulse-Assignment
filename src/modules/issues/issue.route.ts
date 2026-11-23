@@ -7,3 +7,4 @@ export const issueRouter = Router();
 issueRouter.get("/", issueController.getAllIssues);
 issueRouter.post("/", auth(), issueController.createIssue);
 issueRouter.get("/:id", issueController.getSingleIssue);
+issueRouter.patch("/:id", auth(), issueController.updateIssue);

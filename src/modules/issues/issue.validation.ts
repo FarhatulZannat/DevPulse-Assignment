@@ -8,6 +8,7 @@ import {
   type IssueSort,
   type IssueStatus,
   type IssueType,
+  type UpdateIssueInput,
 } from "./issue.interface.js";
 
 const isObject = (value: unknown): value is Record<string, unknown> => {
@@ -123,4 +124,79 @@ export const validateIssueId = (value: unknown): number => {
   }
 
   return id;
+};
+
+export const validateUpdateIssueInput = (payload: unknown): UpdateIssueInput => {
+  if (!isObject(payload)) {
+    throw new AppError(
+      StatusCodes.BAD_REQUEST,
+      "Invalid issue data",
+      "Request body must be a JSON object",
+    );
+  }
+
+  const errors: string[] = [];
+  const allowedFields = new Set(["title", "description", "type", "status"]);
+  const unknownFields = Object.keys(payload).filter(
+    (field) => !allowedFields.has(field),
+  );
+
+  if (unknownFields.length > 0) {
+    errors.push(`unsupported fields: ${unknownFields.join(", ")}`);
+  }
+
+  const update: UpdateIssueInput = {};
+
+  if ("title" in payload) {
+    if (typeof payload.title !== "string" || !payload.title.trim()) {
+      errors.push("title must be a non-empty string");
+    } else if (payload.title.trim().length > 150) {
+      errors.push("title must not exceed 150 characters");
+    } else {
+      update.title = payload.title.trim();
+    }
+  }
+
+  if ("description" in payload) {
+    if (
+      typeof payload.description !== "string" ||
+      payload.description.trim().length < 20
+    ) {
+      errors.push("description must contain at least 20 characters");
+    } else {
+      update.description = payload.description.trim();
+    }
+  }
+
+  if ("type" in payload) {
+    if (
+      typeof payload.type !== "string" ||
+      !ISSUE_TYPES.includes(payload.type as IssueType)
+    ) {
+      errors.push("type must be either bug or feature_request");
+    } else {
+      update.type = payload.type as IssueType;
+    }
+  }
+
+  if ("status" in payload) {
+    if (
+      typeof payload.status !== "string" ||
+      !ISSUE_STATUSES.includes(payload.status as IssueStatus)
+    ) {
+      errors.push("status must be open, in_progress, or resolved");
+    } else {
+      update.status = payload.status as IssueStatus;
+    }
+  }
+
+  if (Object.keys(payload).length === 0) {
+    errors.push("provide at least one field to update");
+  }
+
+  if (errors.length > 0) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "Invalid issue data", errors);
+  }
+
+  return update;
 };

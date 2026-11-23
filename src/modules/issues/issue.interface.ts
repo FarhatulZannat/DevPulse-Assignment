@@ -11,6 +11,13 @@ export interface CreateIssueInput {
   type: IssueType;
 }
 
+export interface UpdateIssueInput {
+  title?: string;
+  description?: string;
+  type?: IssueType;
+  status?: IssueStatus;
+}
+
 export interface IssueRecord {
   id: number;
   title: string;
